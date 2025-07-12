@@ -51,8 +51,8 @@ display.text('OLED 128x64', 40, 24, 1)
 display.show()
 time.sleep(2)
 '''
-
-logger.info("testSSD1306: Lines of text")
+'''
+logger.info("testSSD1306: Lines of text 9 pixels high")
 display.fill(0)
 display.text('Line: 0, 0, 1', 0, 0, 1)
 display.text('Line: 0, 9, 2', 0, 9, 2)
@@ -62,10 +62,57 @@ display.text('Line: 0, 36, 3', 0, 36, 5)
 display.text('Line: 0, 45, 3', 0, 45, 6)
 display.show()
 time.sleep(2)
-display.invert(1)
+'''
+#display.invert(1)
+#display.show()
+#time.sleep(2)
+
+display.rotate(False)
+#display.show()
+
+#display.fill(1)
+#display.show()
+#time.sleep(2)
+#display.rotate(True)
+
+# Display can show 8 lines of 16 chars legibly
+
+logger.info("testSSD1306: Lines of text 8 pixels high")
+display.fill(0)
+display.text('0123456789ABCDEFG', 0, 0, 1)
+display.text('Line: 0, 8, 2', 0, 8, 2)
+display.text('Line: 0, 16, 3', 0, 16, 3)
+display.text('Line: 0, 24, 3', 0, 24, 4)
+display.text('Line: 0, 32, 3', 0, 32, 5)
+display.text('Line: 0, 40, 3', 0, 40, 6)
+display.text('Line: 0, 48, 3', 0, 48, 6)
+display.text('Line: 0, 56, 3', 0, 56, 6)
 display.show()
 time.sleep(2)
-display.rotate(False)
+
+
+logger.info("testSSD1306: Lines of text 8 pixels high - h/w scrolling")
+display.hwScrollOn(True, 2, 3, 8)
+time.sleep(10)
+display.hwScrollOff()
+display.hwScrollOn(False, 2, 3, 8)
+time.sleep(10)
+display.hwScrollOff()
+
+
+logger.info("testSSD1306: Lines of text 8 pixels high - framebuf scrolling")
+display.scroll(64,0)
 display.show()
-#display.fill(1)
+
+
+
+'''
+logger.info("testSSD1306: Test hwScrollOn/hwScrollOn no hwScrollOff exception")
+display.hwScrollOn(True, 2, 3, 8)
+display.hwScrollOn(True, 2, 3, 8)
+'''
+#display.invert(1)
+#display.show()
+#time.sleep(2)
+#display.rotate(False)
 #display.show()

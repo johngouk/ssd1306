@@ -1,4 +1,8 @@
 # MicroPython SSD1306 OLED driver, I2C and SPI interfaces
+# https://github.com/micropython/micropython-lib/blob/7128d423c2e7c0309ac17a1e6ba873b909b24fcc/micropython/drivers/display/ssd1306/ssd1306.py#L30%5D
+# 2025-07-12 Modified to add
+#    hwScrollOn|Off() h/w scrolling, select lines to scroll, left or right
+#    rotate(True|False) rotate display 0/180 degrees - not amazingly useful for text!
 
 from micropython import const
 import framebuf
@@ -26,6 +30,10 @@ SET_DISP_CLK_DIV = const(0xD5)
 SET_PRECHARGE = const(0xD9)
 SET_VCOM_DESEL = const(0xDB)
 SET_CHARGE_PUMP = const(0x8D)
+SET_HSCROLL_PARAMS = const(0x26)
+SET_SCROLL_ON = const(0x2F)
+SET_SCROLL_OFF = const(0x2E)
+
 
 # Subclassing FrameBuffer provides support for graphics primitives
 # http://docs.micropython.org/en/latest/pyboard/library/framebuf.html
@@ -37,6 +45,7 @@ class SSD1306(framebuf.FrameBuffer):
         self.external_vcc = external_vcc
         self.pages = self.height // 8
         self.buffer = bytearray(self.pages * self.width)
+        self._scroll = False
         super().__init__(self.buffer, self.width, self.height, framebuf.MONO_VLSB)
         self.init_display()
 
@@ -96,7 +105,46 @@ class SSD1306(framebuf.FrameBuffer):
         self.write_cmd(SET_SEG_REMAP | (rotate & 1))
         # com output (vertical mirror) is changed immediately
         # you need to call show() for the seg remap to be visible
+        self.show() # Save the caller the trouble - we want it to be right
 
+    def hwScrollOn(self, left, startLine, endLine, rate):
+        ''' left - True|False,
+            startLine - 0-7,
+            endLine - 0-7, >= startLine,
+            rate - 1-8; options are 256,128,64,25,5,4,3,2 frame interval
+            
+            Command bytes:
+            0 Scroll + dir
+            1 0x00
+            2 start page
+            3 frame rate interval
+            4 end page
+            5 0x00
+            6 0xFF
+        '''
+        #                256 128 64  25  5   4   3   2
+        rates = bytes(b'\x03\x02\x01\x06\x00\x05\x04\x07')
+        if self._scroll:
+            raise Exception("scrollOn called when already scrolling - call scrollOff first!")
+        if (endLine < startLine) or (endLine < 0) or (startLine < 0) or (endLine > 7) or (startLine > 7):
+            raise ValueError("startLine or endLine not 0-7 or end < start")
+        if (rate > len(rates)) or (rate < 1):
+            raise IndexError("rate must be 1 <= rate <= 8")
+        self.write_cmd(SET_HSCROLL_PARAMS | (left & 1))
+        self.write_cmd(0x00)
+        self.write_cmd(startLine)
+        self.write_cmd(rates[rate-1])
+        self.write_cmd(endLine)
+        self.write_cmd(0x00)
+        self.write_cmd(0xFF)
+        self._scroll = True
+        self.write_cmd(SET_SCROLL_ON)
+
+    def hwScrollOff(self):
+        if self._scroll:
+            self.write_cmd(SET_SCROLL_OFF)
+        self._scroll = False
+            
     def show(self):
         x0 = 0
         x1 = self.width - 1
